@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stroomlijning doelen, leerstof en evaluatie</title>
+<style>
+  :root{
+    --bg:#f5f3ee; --paper:#ffffff; --ink:#1f2a33; --muted:#5c6a75; --line:#d9d4c8;
+    --accent:#1f6f6b; --accent-soft:#e3f0ee; --warn:#b5542c; --warn-soft:#fbeee7; --ok:#2f7d3e;
+    --field:#fbfaf7; --radius:10px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth; scroll-padding-top:80px}
+  body{margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.5 "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif}
+  header.top{position:sticky; top:0; z-index:10; background:var(--accent); color:#fff;
+    padding:12px 20px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; box-shadow:0 2px 8px rgba(0,0,0,.12)}
+  header.top h1{font-size:1.05rem; margin:0; font-weight:600; flex:1; min-width:220px}
+  .save-state{font-size:.85rem; opacity:.9}
+  .btn{border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:8px;
+    padding:7px 12px; font:inherit; font-size:.9rem; cursor:pointer}
+  .btn:hover{border-color:var(--accent); color:var(--accent)}
+  header.top .btn{background:rgba(255,255,255,.12); color:#fff; border-color:rgba(255,255,255,.35)}
+  header.top .btn:hover{background:rgba(255,255,255,.25)}
+  .btn.small{padding:4px 10px; font-size:.85rem}
+  .btn.link{border:none; background:none; color:var(--accent); padding:4px 6px; text-decoration:underline}
+  .btn.del{border:none; background:none; color:var(--muted); font-size:1.1rem; padding:2px 6px; line-height:1}
+  .btn.del:hover{color:var(--warn)}
+
+  .layout{display:grid; grid-template-columns:240px 1fr; gap:24px; max-width:1180px; margin:0 auto; padding:24px 20px 80px}
+  nav.steps{position:sticky; top:84px; align-self:start}
+  nav.steps a{display:flex; justify-content:space-between; align-items:center; gap:8px; text-decoration:none; color:var(--ink);
+    padding:8px 10px; border-radius:8px; font-size:.92rem}
+  nav.steps a:hover{background:#ebe7de}
+  nav.steps a.active{background:var(--accent-soft); color:var(--accent); font-weight:600}
+  .pill{font-size:.75rem; padding:1px 8px; border-radius:20px; background:#e7e3d9; color:var(--muted); white-space:nowrap}
+  .pill.done{background:#dcefe0; color:var(--ok)}
+  .overall{margin:14px 10px 0; font-size:.85rem; color:var(--muted)}
+  .bar{height:6px; background:#e2ddd1; border-radius:4px; overflow:hidden; margin-top:6px}
+  .bar span{display:block; height:100%; background:var(--accent); width:0; transition:width .3s}
+
+  main{min-width:0}
+  .intro{margin:0 0 20px}
+  .intro h2{font-size:1.6rem; margin:0 0 6px; line-height:1.25}
+  .intro p{margin:0; color:var(--muted)}
+  section.card{background:var(--paper); border:1px solid var(--line); border-radius:var(--radius);
+    padding:22px 24px; margin-bottom:22px}
+  section.card > h3{margin:0 0 4px; font-size:1.2rem; color:var(--accent)}
+  section.card > h3 .num{display:inline-block; min-width:1.9em; height:1.9em; line-height:1.9em; text-align:center;
+    background:var(--accent); color:#fff; border-radius:50%; font-size:.85rem; margin-right:8px; vertical-align:2px}
+  .hint{color:var(--muted); margin:0 0 16px; font-size:.95rem}
+  h4{margin:20px 0 8px; font-size:1rem}
+
+  .grid{display:grid; grid-template-columns:minmax(180px, 34%) 1fr; border:1px solid var(--line); border-radius:8px; overflow:hidden}
+  .grid label{padding:10px 12px; background:#f3f1ea; border-bottom:1px solid var(--line); font-size:.94rem; font-weight:500}
+  .grid .cell{border-bottom:1px solid var(--line); padding:6px}
+  .grid label:nth-last-child(2), .grid .cell:last-child{border-bottom:none}
+
+  input[type=text], input[type=number], input[type=date], textarea{width:100%; font:inherit; color:inherit;
+    border:1px solid transparent; background:var(--field); border-radius:6px; padding:7px 9px}
+  select{width:100%; font:inherit; color:inherit; border:1px solid transparent; background:var(--field); border-radius:6px; padding:7px 9px; cursor:pointer}
+  .grid select{border-color:var(--line)}
+  select:focus{outline:none; border-color:var(--accent); background:#fff; box-shadow:0 0 0 3px var(--accent-soft)}
+  .sub{display:block; font-weight:400; font-size:.85rem; color:var(--muted); margin-top:2px}
+  .needs{background:var(--accent-soft); border-radius:8px; padding:10px 12px; margin:0 0 16px; font-size:.95rem}
+  input:focus, textarea:focus{outline:none; border-color:var(--accent); background:#fff; box-shadow:0 0 0 3px var(--accent-soft)}
+  textarea{resize:vertical; min-height:42px; display:block}
+  .standalone input[type=text], .standalone textarea{border:1px solid var(--line)}
+  .inline-field{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:0 0 14px}
+  .inline-field label{font-weight:500}
+  .inline-field input{flex:1; min-width:200px; border:1px solid var(--line)}
+  .inline-field input[type=number]{flex:0 0 110px; min-width:0}
+
+  .tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:8px}
+  table{width:100%; border-collapse:collapse; font-size:.94rem}
+  th{background:#f3f1ea; text-align:left; font-weight:600; padding:9px 8px; border-bottom:1px solid var(--line); vertical-align:bottom}
+  td{border-bottom:1px solid var(--line); padding:4px; vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.fixed{padding:10px 8px; font-weight:600; white-space:nowrap}
+  td.act{width:34px; text-align:center; vertical-align:middle}
+  td.chk{text-align:center; vertical-align:middle}
+  td textarea{min-height:38px}
+  td.missing textarea, td.missing input{background:var(--warn-soft); border-color:#e8b9a3}
+  .table-actions{display:flex; gap:8px; margin-top:8px; flex-wrap:wrap}
+
+  .qa{display:grid; gap:14px}
+  .qa .q label{display:block; font-weight:500; margin-bottom:5px}
+  .qa .q textarea{border:1px solid var(--line); min-height:70px}
+
+  .checklist{list-style:none; padding:0; margin:16px 0 0; display:grid; gap:8px}
+  .checklist label{display:flex; gap:10px; align-items:flex-start; padding:10px 12px; border:1px solid var(--line); border-radius:8px; cursor:pointer}
+  .checklist input{margin-top:4px; width:18px; height:18px; accent-color:var(--accent)}
+  .checklist label:has(input:checked){background:#eef6ef; border-color:#bcdcc3}
+  input[type=checkbox]{accent-color:var(--accent); width:18px; height:18px}
+
+  .notice{padding:10px 12px; border-radius:8px; font-size:.92rem; margin-top:12px}
+  .notice.warn{background:var(--warn-soft); color:#7a3517}
+  .notice.ok{background:#e6f3e9; color:#1f5a2b}
+
+  .final{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+  footer.note{color:var(--muted); font-size:.85rem; text-align:center; margin-top:10px}
+
+  /* Pagina per pagina */
+  body.paged section.card, body.paged .intro{display:none}
+  body.paged section.card.current, body.paged .intro.current{display:block}
+  .pager{display:flex; justify-content:space-between; align-items:center; gap:10px; margin:0 0 22px}
+  #pagerInfo{color:var(--muted); font-size:.9rem}
+  .btn.primary{background:var(--accent); color:#fff; border-color:var(--accent)}
+  .btn.primary:hover{background:#185956; color:#fff}
+  .btn:disabled{opacity:.4; cursor:default}
+  .btn[hidden]{display:none}
+
+  @media (max-width: 860px){
+    .layout{grid-template-columns:1fr; padding:16px}
+    nav.steps{display:none}
+    header.top{position:static}
+    .grid{grid-template-columns:1fr}
+    .grid label{border-bottom:none; padding-bottom:4px}
+    section.card{padding:18px 16px}
+  }
+
+  /* Afdrukken / opslaan als PDF */
+  @media print{
+    @page{margin:14mm}
+    body{background:#fff; font-size:11pt}
+    body.paged section.card[data-step]{display:block !important}
+    body.paged .intro{display:none !important}
+    .pager{display:none !important}
+    header.top, nav.steps, .btn, .table-actions, td.act, th.act, .no-print, .notice{display:none !important}
+    .layout{display:block; padding:0; max-width:none}
+    section.card{border:none; padding:0 0 10px; margin:0 0 14px; break-inside:auto}
+    section.card > h3{break-after:avoid}
+    input, textarea{border:none !important; background:none !important; padding:2px 4px; box-shadow:none !important}
+    textarea{resize:none; overflow:hidden}
+    select{appearance:none; -webkit-appearance:none; border:none !important; background:none !important; padding:2px 4px}
+    .needs{background:none; padding:0}
+    .grid, .tablewrap{border-color:#999}
+    tr{break-inside:avoid}
+    .checklist label{padding:4px 8px}
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>Stroomlijning tussen doelen, leerstof en evaluatie</h1>
+  <span class="save-state" id="saveState">Nog niets ingevuld</span>
+  <button class="btn" id="btnExport" title="Bewaar je antwoorden als bestand op je computer">Bewaar als bestand</button>
+  <button class="btn" id="btnImport" title="Open een eerder bewaard bestand">Open bestand</button>
+  <button class="btn" id="btnPrint" title="Afdrukken of opslaan als PDF">Afdrukken / PDF</button>
+  <input type="file" id="fileInput" accept=".json,application/json" hidden>
+</header>
+
+<div class="layout">
+  <nav class="steps" id="nav"></nav>
+
+  <main id="form">
+    <div class="intro">
+      <h2>Stroomlijning tussen doelen, leerstof en evaluatie</h2>
+      <p>Vul dit document in vóór je start met het maken van je lesvoorbereiding. Je antwoorden worden automatisch bewaard in deze browser. Gebruik <strong>Bewaar als bestand</strong> om een kopie op je computer te zetten of door te sturen.</p>
+    </div>
+
+    <!-- GEGEVENS -->
+    <section class="card" id="s0" data-step="Gegevens">
+      <h3>Algemene gegevens</h3>
+      <p class="needs"><strong>Wat heb je nodig?</strong> Het leerplan van de school (stap 3), informatie van je mentor over de evaluatie (stap 4) en cursusmateriaal (stap 5).</p>
+      <div class="grid">
+        <label for="f_naam">Naam student</label><div class="cell"><input type="text" id="f_naam" data-f="naam"></div>
+        <label for="f_opl">Opleiding en jaar</label><div class="cell"><input type="text" id="f_opl" data-f="opleiding"></div>
+        <label for="f_vak">Vak (taal / wiskunde / LO)</label><div class="cell"><input type="text" id="f_vak" data-f="vak" list="vakken"></div>
+        <label for="f_school">Stageschool en klas</label><div class="cell"><input type="text" id="f_school" data-f="school"></div>
+        <label for="f_mentor">Naam mentor</label><div class="cell"><input type="text" id="f_mentor" data-f="mentor"></div>
+        <label for="f_uren">Aantal uren in de lessenreeks</label><div class="cell"><input type="text" id="f_uren" data-f="uren"></div>
+      </div>
+      <datalist id="vakken"><option value="Taal"><option value="Wiskunde"><option value="LO"></datalist>
+    </section>
+
+    <!-- STAP 1 -->
+    <section class="card" id="s1" data-step="Stap 1 · Situering">
+      <h3><span class="num">1</span>Situering</h3>
+      <p class="hint">Situeer je lessenreeks eerst binnen een groter domein of een vaardigheid van het vak.</p>
+      <div class="grid">
+        <label>Groter domein of vaardigheid</label><div class="cell"><textarea data-f="s1_thema" rows="1"></textarea></div>
+        <label>Onderwerp(en)</label><div class="cell"><textarea data-f="s1_onderwerp" rows="1"></textarea></div>
+        <label>Formuleer in eigen woorden wat leerlingen op het einde van deze lessenreeks moeten kunnen en kennen.</label><div class="cell"><textarea data-f="s1_kunnen" rows="3"></textarea></div>
+        <label>Wat is de leerinhoudelijke essentie van mijn lessenreeks?</label><div class="cell"><textarea data-f="s1_essentie" rows="2"></textarea></div>
+        <label>Wat kwam hier vóór mijn reeks al aan bod in de klas?</label><div class="cell"><textarea data-f="s1_voor" rows="2"></textarea></div>
+        <label>Wat volgt er na mijn reeks?</label><div class="cell"><textarea data-f="s1_na" rows="2"></textarea></div>
+      </div>
+    </section>
+
+    <!-- STAP 2 -->
+    <section class="card" id="s2" data-step="Stap 2 · Voorkennis">
+      <h3><span class="num">2</span>Voorkennis</h3>
+      <div class="grid">
+        <label>Omschrijf concreet welke kennis, vaardigheden en attitudes de leerlingen al bezitten voordat ze aan deze reeks beginnen.</label><div class="cell"><textarea data-f="s2_bezit" rows="3"></textarea></div>
+        <label>Wat zijn de voorwaarden voor de leerlingen om te kunnen beginnen aan deze reeks?</label><div class="cell"><textarea data-f="s2_voorwaarden" rows="2"></textarea></div>
+        <label>Hoe ga ik na of leerlingen aan deze voorwaarden voldoen?</label><div class="cell"><textarea data-f="s2_nagaan" rows="2"></textarea></div>
+        <label>Wat indien een deel van de leerlingen niet aan deze voorwaarden voldoet?</label><div class="cell"><textarea data-f="s2_nietvoldoen" rows="2"></textarea></div>
+        <label>Wat doe ik met leerlingen die de lesdoelen al bereikt hebben?</label><div class="cell"><textarea data-f="s2_alberekt" rows="2"></textarea></div>
+        <label>Hoe is het leerinhoudelijke domein aanwezig in de leefwereld van de kinderen?<span class="sub">Enkel voor lager onderwijs</span></label><div class="cell"><textarea data-f="s2_leefwereld" rows="2"></textarea></div>
+      </div>
+    </section>
+
+    <!-- STAP 3 -->
+    <section class="card" id="s3" data-step="Stap 3 · Leerplandoelen">
+      <h3><span class="num">3</span>Welke leerplandoelen horen hierbij?</h3>
+      <p class="hint">Zoek de doelen op in het leerplan dat de school gebruikt. Noteer ze letterlijk, met de code, en schrijf ernaast het bijhorende minimumdoel uit.</p>
+      <div class="inline-field"><label for="f_leerplan">Leerplan van de school:</label><input type="text" id="f_leerplan" data-f="s2_leerplan"></div>
+      <div class="tablewrap"><table data-table="doelen"></table></div>
+      <div class="table-actions"><button class="btn small" data-add="doelen">+ Doel toevoegen</button></div>
+      <h4>Wat zijn de voornaamste lesdoelen van deze lessenreeks?</h4>
+      <p class="hint">Formuleer concrete lesdoelen.</p>
+      <div class="tablewrap"><table data-table="lesdoelen"></table></div>
+      <div class="table-actions"><button class="btn small" data-add="lesdoelen">+ Lesdoel toevoegen</button></div>
+    </section>
+
+    <!-- STAP 4 -->
+    <section class="card" id="s4" data-step="Stap 4 · Evaluatie">
+      <h3><span class="num">4</span>Hoe wordt de lessenreeks geëvalueerd?</h3>
+      <p class="hint">Vraag je mentor hoe dit domein geëvalueerd wordt, nóg vóór je lessen plant.</p>
+      <h4>4a. Zo zou mijn mentor dit evalueren</h4>
+      <div class="grid">
+        <label>Vorm (toets, observatie, opdracht, spelsituatie …)</label><div class="cell"><textarea data-f="s3_vorm" rows="1"></textarea></div>
+        <label>Wanneer (na les … / datum)</label><div class="cell"><textarea data-f="s3_wanneer" rows="1"></textarea></div>
+        <label>Wat wordt er in beeld gebracht?</label><div class="cell"><textarea data-f="s3_wat" rows="3"></textarea></div>
+      </div>
+      <h4>4b. Zo zou ik het evalueren</h4>
+      <div class="grid">
+        <label>Omschrijf welke aanpassingen of toevoegingen je zou maken om de evaluatie nog beter bij de doelen te laten aansluiten.</label><div class="cell"><textarea data-f="s3_aanpassing" rows="3"></textarea></div>
+        <label for="f_niveau">Op welk kennisniveau wil je de evaluatie inplannen?</label><div class="cell"><select id="f_niveau" data-f="s3_niveau">
+          <option value="">Kies een niveau …</option><option>Kennis</option><option>Inzicht</option><option>Toepassing</option><option>Integratie</option></select></div>
+      </div>
+    </section>
+
+    <!-- STAP 5 -->
+    <section class="card" id="s5" data-step="Stap 5 · Bronnen">
+      <h3><span class="num">5</span>Bronnen</h3>
+      <h4>Opleidingsgerelateerd cursusmateriaal</h4>
+      <div class="tablewrap"><table data-table="cursus"></table></div>
+      <div class="table-actions"><button class="btn small" data-add="cursus">+ Rij toevoegen</button></div>
+      <h4>Niet-opleidingsgerelateerd cursusmateriaal <span style="font-weight:400;color:var(--muted)">(actualiteit, artikels, handleidingen, handboeken, media …)</span></h4>
+      <div class="tablewrap"><table data-table="bronnen"></table></div>
+      <div class="table-actions"><button class="btn small" data-add="bronnen">+ Bron toevoegen</button></div>
+      <div class="qa" style="margin-top:20px">
+        <div class="q"><label>Welke vaak voorkomende fouten of struikelblokken bij leerlingen beschrijven je bronnen?</label><textarea data-f="s4_struikel" rows="3"></textarea></div>
+        <div class="q"><label>Aan welke andere vaak voorkomende fouten denk je nog bij je leerlingen?</label><textarea data-f="s4_fouten" rows="3"></textarea></div>
+      </div>
+    </section>
+
+    <!-- STAP 6 -->
+    <section class="card" id="s6" data-step="Stap 6 · Lessenreeks">
+      <h3><span class="num">6</span>Hoeveel lessen telt de reeks?</h3>
+      <p class="hint">Denk in een reeks, niet in losse lessen: wat moet elke les opleveren om tot de evaluatie te komen?</p>
+      <div class="inline-field"><label for="f_aantal">Aantal lessen tot de evaluatie:</label><input type="number" min="1" max="30" id="f_aantal" data-f="s6_aantal">
+        <button class="btn small no-print" id="btnSyncLessen" title="Pas het aantal rijen in de tabel aan">Tabel aanpassen</button></div>
+      <div class="tablewrap"><table data-table="lessen"></table></div>
+      <div class="table-actions"><button class="btn small" data-add="lessen">+ Les toevoegen</button></div>
+    </section>
+
+    <!-- STAP 7 -->
+    <section class="card" id="s7" data-step="Stap 7 · Alignmentcheck">
+      <h3><span class="num">7</span>Alignmentcheck</h3>
+      <p class="hint">Breng lesdoelen, evaluatie, bron en wat je in de les gedaan hebt samen en check dit. <strong>Een lege cel betekent: aanpassen vóór je verder gaat.</strong></p>
+      <div class="tablewrap"><table data-table="align"></table></div>
+      <div class="table-actions">
+        <button class="btn small" data-add="align">+ Lesdoel toevoegen</button>
+        <button class="btn small" id="btnFromStep3" title="Neem de lesdoelen uit stap 3 over in deze tabel">Lesdoelen overnemen uit stap 3</button>
+      </div>
+      <div id="alignNotice"></div>
+
+      <ul class="checklist">
+        <li><label><input type="checkbox" data-f="c5"> Ik weet wat de leerlingen al moeten kunnen bij de start.</label></li>
+        <li><label><input type="checkbox" data-f="c4"> De leerinhoud wordt logisch opgebouwd doorheen de lessen.</label></li>
+        <li><label><input type="checkbox" data-f="c1"> Elk doel wordt geëvalueerd.</label></li>
+        <li><label><input type="checkbox" data-f="c3"> Bij elk doel verwijs ik naar cursusmateriaal of andere bronnen.</label></li>
+        <li><label><input type="checkbox" data-f="c2"> Alles wat geëvalueerd wordt, komt in minstens één les aan bod.</label></li>
+      </ul>
+      <div id="finalNotice"></div>
+    </section>
+
+    <div class="pager no-print">
+      <button class="btn" id="btnPrev">← Vorige</button>
+      <span id="pagerInfo"></span>
+      <button class="btn primary" id="btnNext">Volgende →</button>
+    </div>
+
+    <section class="card no-print" id="klaar">
+      <h3>Klaar?</h3>
+      <p class="hint">Bewaar je werk als bestand, of druk het af / sla het op als PDF om aan je mentor of docent te bezorgen.</p>
+      <div class="final">
+        <button class="btn" onclick="document.getElementById('btnExport').click()">Bewaar als bestand</button>
+        <button class="btn" onclick="window.print()">Afdrukken / PDF</button>
+        <button class="btn link" id="btnReset">Alles wissen en opnieuw beginnen</button>
+      </div>
+    </section>
+    <footer class="note no-print">Dit formulier werkt volledig offline. Gegevens blijven op deze computer, in deze browser.</footer>
+  </main>
+</div>
+
+<script>
+(function(){
+  const STORE_KEY = 'stroomlijning-lesvoorbereiding-v1';
+
+  const NIVEAUS = ['Kennis','Inzicht','Toepassing','Integratie'];
+
+  /* ---------- Tabeldefinities ---------- */
+  const TABLES = {
+    doelen: { cols:[
+        {key:'code', label:'Code', type:'text', width:'110px'},
+        {key:'doel', label:'Leerplandoel (letterlijk)', type:'area'},
+        {key:'min',  label:'Minimumdoel', type:'area', width:'32%'} ],
+      initial:4, empty:{} },
+    lesdoelen: { cols:[ {key:'lesdoel', label:'Concreet lesdoel', type:'area'} ], initial:3, numbered:true },
+    cursus: { cols:[
+        {key:'cursus', label:'Cursusmateriaal (cursus, ppt, artikels …)', type:'area', width:'35%'},
+        {key:'mee', label:'Wat neem ik mee? (didactisch kader, principe, opbouw, werkvorm …)', type:'area'} ],
+      initial:3 },
+    bronnen: { cols:[ {key:'bron', label:'Bron', type:'area'} ], initial:2, numbered:true },
+    lessen: { cols:[
+        {key:'les', label:'Les', type:'fixed', width:'90px'},
+        {key:'datum', label:'Datum', type:'date', width:'150px'},
+        {key:'wat', label:'Noteer de concrete lesdoelen', type:'area'},
+        {key:'niveau', label:'Kennisniveau', type:'select', options:NIVEAUS, width:'150px'} ],
+      initial:5, lessons:true },
+    align: { cols:[
+        {key:'doel', label:'Lesdoel (uit stap 3)', type:'area'},
+        {key:'leerstof', label:'Leerinhoud en bron (uit stap 5)', type:'area'},
+        {key:'les', label:'In les … (uit stap 6)', type:'text', width:'110px'},
+        {key:'eval', label:'Hoe geëvalueerd? (uit stap 4)', type:'area'} ],
+      initial:3, checkEmpty:true }
+  };
+
+  const state = { fields:{}, tables:{} };
+  let lastSaved = null;
+
+  /* ---------- Hulpfuncties ---------- */
+  const $ = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  function autosize(t){ t.style.height='auto'; t.style.height = (t.scrollHeight+2)+'px'; }
+
+  function defaultRows(id){
+    const def = TABLES[id], rows=[];
+    for(let i=0;i<def.initial;i++) rows.push({});
+    if(def.lessons){ rows.forEach((r,i)=>{ r.les=String(i+1); }); rows.push({les:'Evaluatie', _eval:true}); }
+    return rows;
+  }
+
+  /* ---------- Tabellen tekenen ---------- */
+  function renderTable(id){
+    const def = TABLES[id], table = $(`table[data-table="${id}"]`);
+    const rows = state.tables[id];
+    let h = '<thead><tr>';
+    if(def.numbered) h += '<th style="width:40px">#</th>';
+    def.cols.forEach(c => h += `<th${c.width?` style="width:${c.width}"`:''}${c.type==='check'?' class="chk"':''}>${esc(c.label)}</th>`);
+    h += '<th class="act" aria-label="Verwijderen"></th></tr></thead><tbody>';
+    rows.forEach((r,i) => {
+      h += `<tr data-i="${i}">`;
+      if(def.numbered) h += `<td class="fixed">${i+1}.</td>`;
+      def.cols.forEach(c => {
+        const v = r[c.key] ?? '';
+        if(c.type==='fixed') h += `<td class="fixed">${esc(v)}</td>`;
+        else if(c.type==='check') h += `<td class="chk"><input type="checkbox" data-c="${c.key}" ${v?'checked':''} aria-label="${esc(c.label)}"></td>`;
+        else if(c.type==='select') h += `<td data-col="${c.key}"><select data-c="${c.key}" aria-label="${esc(c.label)}"><option value="">Kies …</option>${c.options.map(o=>`<option${o===v?' selected':''}>${esc(o)}</option>`).join('')}</select></td>`;
+        else if(c.type==='area') h += `<td data-col="${c.key}"><textarea rows="1" data-c="${c.key}" aria-label="${esc(c.label)}">${esc(v)}</textarea></td>`;
+        else h += `<td data-col="${c.key}"><input type="${c.type==='date'?'date':'text'}" data-c="${c.key}" value="${esc(v)}" aria-label="${esc(c.label)}"></td>`;
+      });
+      const canDel = !(def.lessons && r._eval);
+      h += `<td class="act">${canDel?`<button class="btn del" data-del="${id}" data-i="${i}" title="Rij verwijderen">×</button>`:''}</td></tr>`;
+    });
+    h += '</tbody>';
+    table.innerHTML = h;
+    $$('textarea', table).forEach(autosize);
+    if(def.checkEmpty) checkAlignment();
+  }
+
+  function renumberLessons(){
+    const rows = state.tables.lessen; let n=0;
+    rows.forEach(r => { if(!r._eval){ n++; r.les=String(n); } });
+  }
+
+  function addRow(id){
+    const def = TABLES[id], rows = state.tables[id];
+    if(def.lessons){
+      const evIdx = rows.findIndex(r=>r._eval);
+      rows.splice(evIdx<0?rows.length:evIdx, 0, {});
+      renumberLessons();
+    } else rows.push({});
+    renderTable(id); changed();
+    const tr = $$(`table[data-table="${id}"] tbody tr`)[def.lessons ? rows.findIndex(r=>r._eval)-1 : rows.length-1];
+    const f = tr && tr.querySelector('textarea, input[type=text], input[type=date], select'); if(f) f.focus();
+  }
+
+  function delRow(id, i){
+    const rows = state.tables[id], r = rows[i];
+    const hasContent = Object.entries(r).some(([k,v]) => k!=='les' && k!=='_eval' && v);
+    if(hasContent && !confirm('Deze rij bevat tekst. Wil je ze verwijderen?')) return;
+    rows.splice(i,1);
+    if(TABLES[id].lessons) renumberLessons();
+    if(!rows.length && !TABLES[id].lessons) rows.push({});
+    renderTable(id); changed();
+  }
+
+  /* ---------- Stap 8 controle ---------- */
+  function checkAlignment(){
+    const rows = state.tables.align || [];
+    const tbody = $('table[data-table="align"] tbody'); if(!tbody) return;
+    let gaps = 0, filled = 0;
+    rows.forEach((r,i) => {
+      const tr = tbody.children[i]; if(!tr) return;
+      const any = ['doel','leerstof','les','eval'].some(k => (r[k]||'').trim());
+      if(any) filled++;
+      ['doel','leerstof','les','eval'].forEach(k => {
+        const td = tr.querySelector(`td[data-col="${k}"]`);
+        const miss = any && !(r[k]||'').trim();
+        td.classList.toggle('missing', miss);
+        if(miss) gaps++;
+      });
+    });
+    const n = $('#alignNotice');
+    if(!filled) n.innerHTML = '';
+    else if(gaps) n.innerHTML = `<div class="notice warn">Er ${gaps===1?'is nog 1 lege cel':`zijn nog ${gaps} lege cellen`} in je alignmenttabel. Pas dit aan vóór je verder gaat.</div>`;
+    else n.innerHTML = `<div class="notice ok">Elk doel heeft leerstof, een plaats in de reeks en een evaluatie. 👍</div>`;
+  }
+
+  function checkFinal(){
+    const all = ['c1','c2','c3','c4','c5'].every(k => state.fields[k]);
+    $('#finalNotice').innerHTML = all ? '<div class="notice ok">Alle controlepunten zijn afgevinkt. Je kan starten met je lesvoorbereiding!</div>' : '';
+  }
+
+  /* ---------- Voortgang ---------- */
+  function sectionProgress(sec){
+    let total=0, done=0;
+    $$('[data-f]', sec).forEach(el => {
+      total++;
+      if(el.type==='checkbox' ? el.checked : el.value.trim()) done++;
+    });
+    $$('table[data-table]', sec).forEach(t => {
+      const id = t.dataset.table, rows = state.tables[id]||[];
+      total++;
+      if(rows.some(r => Object.entries(r).some(([k,v]) => k!=='les' && k!=='_eval' && v && String(v).trim() && v!=='—'))) done++;
+    });
+    return {total, done};
+  }
+
+  function buildNav(){
+    const nav = $('#nav'); let h='';
+    $$('section.card[data-step]').forEach(sec => {
+      h += `<a href="#${sec.id}" data-nav="${sec.id}"><span>${esc(sec.dataset.step)}</span><span class="pill" data-pill="${sec.id}"></span></a>`;
+    });
+    h += '<div class="overall"><span id="overallTxt"></span><div class="bar"><span id="overallBar"></span></div></div>';
+    nav.innerHTML = h;
+  }
+
+  function updateProgress(){
+    let T=0, D=0;
+    $$('section.card[data-step]').forEach(sec => {
+      const {total, done} = sectionProgress(sec); T+=total; D+=done;
+      const p = $(`[data-pill="${sec.id}"]`);
+      p.textContent = done===total ? '✓' : `${done}/${total}`;
+      p.classList.toggle('done', done===total);
+    });
+    const pct = T ? Math.round(D/T*100) : 0;
+    $('#overallTxt').textContent = `Ingevuld: ${pct}%`;
+    $('#overallBar').style.width = pct+'%';
+  }
+
+  /* ---------- Pagina per pagina ---------- */
+  const PAGE_KEY = STORE_KEY + '-pagina';
+  let pages = [], cur = 0;
+  function showPage(i, scroll=true){
+    cur = Math.max(0, Math.min(pages.length-1, i));
+    pages.forEach((s,k) => s.classList.toggle('current', k===cur));
+    $$('nav.steps a').forEach(a => a.classList.toggle('active', a.dataset.nav===pages[cur].id));
+    const last = cur===pages.length-1;
+    $('#btnPrev').disabled = cur===0;
+    $('#btnNext').hidden = last;
+    $('#pagerInfo').textContent = `Pagina ${cur+1} van ${pages.length}`;
+    $('.intro').classList.toggle('current', cur===0);
+    $('#klaar').classList.toggle('current', last);
+    $$('textarea', pages[cur]).forEach(autosize);
+    try{ localStorage.setItem(PAGE_KEY, String(cur)); }catch(e){}
+    if(history.replaceState) history.replaceState(null, '', '#'+pages[cur].id);
+    if(scroll) window.scrollTo(0,0);
+  }
+  function initPages(){
+    pages = $$('section.card[data-step]');
+    document.body.classList.add('paged');
+    $('#btnPrev').addEventListener('click', () => showPage(cur-1));
+    $('#btnNext').addEventListener('click', () => showPage(cur+1));
+    $('#nav').addEventListener('click', e => {
+      const a = e.target.closest('a[data-nav]'); if(!a) return;
+      e.preventDefault(); showPage(pages.findIndex(s => s.id===a.dataset.nav));
+    });
+    let start = pages.findIndex(s => '#'+s.id===location.hash);
+    if(start<0){ try{ start = parseInt(localStorage.getItem(PAGE_KEY),10); }catch(e){} }
+    showPage(isNaN(start)||start<0 ? 0 : start, false);
+  }
+
+  /* ---------- Opslaan / laden ---------- */
+  let saveTimer;
+  function changed(){
+    updateProgress(); checkFinal();
+    clearTimeout(saveTimer);
+    $('#saveState').textContent = 'Bewaren…';
+    saveTimer = setTimeout(save, 400);
+  }
+  function save(){
+    try{
+      localStorage.setItem(STORE_KEY, JSON.stringify({...state, savedAt:new Date().toISOString()}));
+      lastSaved = new Date();
+      $('#saveState').textContent = 'Automatisch bewaard om ' + lastSaved.toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'});
+    }catch(e){
+      $('#saveState').textContent = 'Automatisch bewaren lukt niet in deze browser — gebruik “Bewaar als bestand”.';
+    }
+  }
+  // Antwoorden uit de vorige versie van het formulier omzetten
+  function migrate(data){
+    if(!data || typeof data!=='object') return data;
+    const f = data.fields = data.fields || {};
+    if(f.s3_kunnen && !f.s1_kunnen) f.s1_kunnen = f.s3_kunnen;          // oud 3b → Situering
+    if(f.s7_1 && !f.s2_bezit) f.s2_bezit = f.s7_1;                      // oud voorkennis → nieuwe eerste vraag
+    if(f.s7_3 && !f.s2_nietvoldoen) f.s2_nietvoldoen = f.s7_3;
+    const t = data.tables || {};
+    (t.doelen||[]).forEach(r => { if(typeof r.min==='boolean') r.min = r.min ? 'ja' : ''; });
+    (t.cursus||[]).forEach(r => {                                        // hoofdstuk/pagina bewaren in cursusmateriaal
+      const extra = [r.hfdst, r.pag && ('p. '+r.pag)].filter(x=>x&&String(x).trim()).join(', ');
+      if(extra) r.cursus = [r.cursus, extra].filter(Boolean).join(' – ');
+      delete r.hfdst; delete r.pag;
+    });
+    (t.lessen||[]).forEach(r => { delete r.bouwt; });
+    return data;
+  }
+
+  function applyState(data){
+    data = migrate(data);
+    state.fields = (data && data.fields) || {};
+    state.tables = {};
+    Object.keys(TABLES).forEach(id => {
+      const rows = data && data.tables && Array.isArray(data.tables[id]) && data.tables[id].length ? data.tables[id] : defaultRows(id);
+      state.tables[id] = rows.map(r => ({...r}));
+    });
+    if(!state.tables.lessen.some(r=>r._eval)) state.tables.lessen.push({les:'Evaluatie', _eval:true});
+    $$('[data-f]').forEach(el => {
+      const v = state.fields[el.dataset.f];
+      if(el.type==='checkbox') el.checked = !!v; else el.value = v ?? '';
+    });
+    Object.keys(TABLES).forEach(renderTable);
+    $$('textarea[data-f]').forEach(autosize);
+    updateProgress(); checkFinal();
+  }
+  function load(){
+    let data=null;
+    try{ data = JSON.parse(localStorage.getItem(STORE_KEY)||'null'); }catch(e){}
+    applyState(data);
+    if(data && data.savedAt){
+      $('#saveState').textContent = 'Verder gegaan met je bewaarde antwoorden';
+    }
+  }
+
+  /* ---------- Events ---------- */
+  const form = $('#form');
+  form.addEventListener('input', e => {
+    const el = e.target;
+    if(el.tagName==='TEXTAREA') autosize(el);
+    if(el.dataset.f){
+      state.fields[el.dataset.f] = el.type==='checkbox' ? el.checked : el.value;
+      changed(); return;
+    }
+    if(el.dataset.c){
+      const table = el.closest('table[data-table]'), id = table.dataset.table;
+      const i = +el.closest('tr').dataset.i;
+      state.tables[id][i][el.dataset.c] = el.type==='checkbox' ? el.checked : el.value;
+      if(id==='align') checkAlignment();
+      changed();
+    }
+  });
+  // vangnet voor browsers die bij checkboxes geen 'input' sturen
+  form.addEventListener('change', e => {
+    const el = e.target; if(el.type!=='checkbox' && el.tagName!=='SELECT') return;
+    const v = el.type==='checkbox' ? el.checked : el.value;
+    if(el.dataset.f) state.fields[el.dataset.f]=v;
+    else if(el.dataset.c){ const id=el.closest('table').dataset.table; state.tables[id][+el.closest('tr').dataset.i][el.dataset.c]=v; }
+    changed();
+  });
+  form.addEventListener('click', e => {
+    const a = e.target.closest('[data-add]'); if(a){ addRow(a.dataset.add); return; }
+    const d = e.target.closest('[data-del]'); if(d){ delRow(d.dataset.del, +d.dataset.i); }
+  });
+
+  $('#btnSyncLessen').addEventListener('click', () => {
+    const n = parseInt($('#f_aantal').value,10);
+    if(!(n>=1 && n<=30)){ alert('Vul eerst een aantal lessen in (1 tot 30).'); return; }
+    const rows = state.tables.lessen, ev = rows.find(r=>r._eval) || {les:'Evaluatie',_eval:true};
+    let lessons = rows.filter(r=>!r._eval);
+    if(n < lessons.length){
+      const extra = lessons.slice(n);
+      if(extra.some(r => r.datum||r.wat||r.niveau) && !confirm(`De laatste ${lessons.length-n} les(sen) bevatten tekst. Toch verwijderen?`)) return;
+      lessons = lessons.slice(0,n);
+    } else while(lessons.length < n) lessons.push({});
+    state.tables.lessen = [...lessons, ev];
+    renumberLessons(); renderTable('lessen'); changed();
+  });
+
+  $('#btnFromStep3').addEventListener('click', () => {
+    const doelen = state.tables.lesdoelen.filter(r => (r.lesdoel||'').trim()).map(r => ({doel:r.lesdoel}));
+    if(!doelen.length){ alert('Er staan nog geen lesdoelen in stap 3.'); return; }
+    const existing = new Set(state.tables.align.map(r => (r.doel||'').trim()));
+    let rows = state.tables.align.filter(r => ['doel','leerstof','les','eval'].some(k => (r[k]||'').trim()));
+    let added = 0;
+    doelen.forEach(d => {
+      const txt = [d.code, d.doel].filter(Boolean).map(s=>s.trim()).join(' – ');
+      if(!existing.has(txt)){ rows.push({doel:txt}); added++; }
+    });
+    state.tables.align = rows.length ? rows : [{}];
+    renderTable('align'); changed();
+    if(!added) alert('Alle lesdoelen uit stap 3 staan al in de tabel.');
+  });
+
+  // Exporteren
+  $('#btnExport').addEventListener('click', () => {
+    const data = {...state, savedAt:new Date().toISOString(), formulier:'Stroomlijning tussen doelen, leerstof en evaluatie'};
+    const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+    const naam = (state.fields.naam||'student').trim().replace(/[^\p{L}\p{N}]+/gu,'_').replace(/^_|_$/g,'') || 'student';
+    const d = new Date(), stamp = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `stroomlijning_${naam}_${stamp}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+  });
+
+  // Importeren
+  $('#btnImport').addEventListener('click', () => $('#fileInput').click());
+  $('#fileInput').addEventListener('change', e => {
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const data = JSON.parse(reader.result);
+        if(!data || typeof data!=='object' || !data.fields) throw new Error();
+        const hasNow = Object.values(state.fields).some(v=>v);
+        if(hasNow && !confirm('Je huidige antwoorden worden vervangen door die uit het bestand. Doorgaan?')) return;
+        applyState(data); save();
+        $('#saveState').textContent = 'Bestand geopend: ' + file.name;
+      }catch(err){ alert('Dit bestand kon niet gelezen worden. Kies een bestand dat met “Bewaar als bestand” gemaakt is.'); }
+      e.target.value='';
+    };
+    reader.readAsText(file);
+  });
+
+  // bij afdrukken alle pagina's tonen, zodat de tekstvakken de juiste hoogte krijgen
+  function prepPrint(){ document.body.classList.remove('paged'); $$('textarea').forEach(autosize); }
+  function endPrint(){ document.body.classList.add('paged'); }
+  $('#btnPrint').addEventListener('click', () => { prepPrint(); window.print(); });
+  window.addEventListener('beforeprint', prepPrint);
+  window.addEventListener('afterprint', endPrint);
+
+  $('#btnReset').addEventListener('click', () => {
+    if(!confirm('Alles wissen? Bewaar eerst een bestand als je je antwoorden wil houden.')) return;
+    try{ localStorage.removeItem(STORE_KEY); }catch(e){}
+    applyState(null);
+    $('#saveState').textContent = 'Formulier gewist';
+    showPage(0);
+  });
+
+  /* ---------- Start ---------- */
+  buildNav();
+  load();
+  initPages();
+})();
+</script>
+</body>
+</html>
