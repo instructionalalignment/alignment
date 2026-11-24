@@ -101,6 +101,16 @@
   .final{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
   footer.note{color:var(--muted); font-size:.85rem; text-align:center; margin-top:10px}
 
+  /* Pagina per pagina */
+  body.paged section.card, body.paged .intro{display:none}
+  body.paged section.card.current, body.paged .intro.current{display:block}
+  .pager{display:flex; justify-content:space-between; align-items:center; gap:10px; margin:0 0 22px}
+  #pagerInfo{color:var(--muted); font-size:.9rem}
+  .btn.primary{background:var(--accent); color:#fff; border-color:var(--accent)}
+  .btn.primary:hover{background:#185956; color:#fff}
+  .btn:disabled{opacity:.4; cursor:default}
+  .btn[hidden]{display:none}
+
   @media (max-width: 860px){
     .layout{grid-template-columns:1fr; padding:16px}
     nav.steps{display:none}
@@ -114,6 +124,9 @@
   @media print{
     @page{margin:14mm}
     body{background:#fff; font-size:11pt}
+    body.paged section.card[data-step]{display:block !important}
+    body.paged .intro{display:none !important}
+    .pager{display:none !important}
     header.top, nav.steps, .btn, .table-actions, td.act, th.act, .no-print, .notice{display:none !important}
     .layout{display:block; padding:0; max-width:none}
     section.card{border:none; padding:0 0 10px; margin:0 0 14px; break-inside:auto}
@@ -267,7 +280,13 @@
       <div id="finalNotice"></div>
     </section>
 
-    <section class="card no-print">
+    <div class="pager no-print">
+      <button class="btn" id="btnPrev">← Vorige</button>
+      <span id="pagerInfo"></span>
+      <button class="btn primary" id="btnNext">Volgende →</button>
+    </div>
+
+    <section class="card no-print" id="klaar">
       <h3>Klaar?</h3>
       <p class="hint">Bewaar je werk als bestand, of druk het af / sla het op als PDF om aan je mentor of docent te bezorgen.</p>
       <div class="final">
@@ -449,12 +468,37 @@
     $('#overallBar').style.width = pct+'%';
   }
 
-  // actieve stap markeren tijdens scrollen
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(e => { if(e.isIntersecting){
-      $$('nav.steps a').forEach(a => a.classList.toggle('active', a.dataset.nav===e.target.id));
-    }});
-  }, {rootMargin:'-30% 0px -60% 0px'});
+  /* ---------- Pagina per pagina ---------- */
+  const PAGE_KEY = STORE_KEY + '-pagina';
+  let pages = [], cur = 0;
+  function showPage(i, scroll=true){
+    cur = Math.max(0, Math.min(pages.length-1, i));
+    pages.forEach((s,k) => s.classList.toggle('current', k===cur));
+    $$('nav.steps a').forEach(a => a.classList.toggle('active', a.dataset.nav===pages[cur].id));
+    const last = cur===pages.length-1;
+    $('#btnPrev').disabled = cur===0;
+    $('#btnNext').hidden = last;
+    $('#pagerInfo').textContent = `Pagina ${cur+1} van ${pages.length}`;
+    $('.intro').classList.toggle('current', cur===0);
+    $('#klaar').classList.toggle('current', last);
+    $$('textarea', pages[cur]).forEach(autosize);
+    try{ localStorage.setItem(PAGE_KEY, String(cur)); }catch(e){}
+    if(history.replaceState) history.replaceState(null, '', '#'+pages[cur].id);
+    if(scroll) window.scrollTo(0,0);
+  }
+  function initPages(){
+    pages = $$('section.card[data-step]');
+    document.body.classList.add('paged');
+    $('#btnPrev').addEventListener('click', () => showPage(cur-1));
+    $('#btnNext').addEventListener('click', () => showPage(cur+1));
+    $('#nav').addEventListener('click', e => {
+      const a = e.target.closest('a[data-nav]'); if(!a) return;
+      e.preventDefault(); showPage(pages.findIndex(s => s.id===a.dataset.nav));
+    });
+    let start = pages.findIndex(s => '#'+s.id===location.hash);
+    if(start<0){ try{ start = parseInt(localStorage.getItem(PAGE_KEY),10); }catch(e){} }
+    showPage(isNaN(start)||start<0 ? 0 : start, false);
+  }
 
   /* ---------- Opslaan / laden ---------- */
   let saveTimer;
@@ -608,21 +652,25 @@
     reader.readAsText(file);
   });
 
-  $('#btnPrint').addEventListener('click', () => { $$('textarea').forEach(autosize); window.print(); });
-  window.addEventListener('beforeprint', () => $$('textarea').forEach(autosize));
+  // bij afdrukken alle pagina's tonen, zodat de tekstvakken de juiste hoogte krijgen
+  function prepPrint(){ document.body.classList.remove('paged'); $$('textarea').forEach(autosize); }
+  function endPrint(){ document.body.classList.add('paged'); }
+  $('#btnPrint').addEventListener('click', () => { prepPrint(); window.print(); });
+  window.addEventListener('beforeprint', prepPrint);
+  window.addEventListener('afterprint', endPrint);
 
   $('#btnReset').addEventListener('click', () => {
     if(!confirm('Alles wissen? Bewaar eerst een bestand als je je antwoorden wil houden.')) return;
     try{ localStorage.removeItem(STORE_KEY); }catch(e){}
     applyState(null);
     $('#saveState').textContent = 'Formulier gewist';
-    window.scrollTo(0,0);
+    showPage(0);
   });
 
   /* ---------- Start ---------- */
   buildNav();
   load();
-  $$('section.card[data-step]').forEach(s => io.observe(s));
+  initPages();
 })();
 </script>
 </body>
